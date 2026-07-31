@@ -123,18 +123,49 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1.5">Primary Live Data Source Provider</label>
+                <label className="block text-slate-300 font-bold mb-1.5">Fournisseur de Flux de Données Principal</label>
                 <select
                   value={formData.data_source}
                   onChange={(e) => handleChange("data_source", e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-cyan-300 font-bold focus:outline-none focus:border-cyan-500"
                 >
+                  <option value="DERIV_API">Deriv WebSocket API (Indices Synthétiques, Volatility, Boom/Crash & Forex)</option>
                   <option value="LIVE_API">Live Financial API Feed (Yahoo Finance / Binance API - Real Time)</option>
                   <option value="MT5_BRIDGE">MetaTrader 5 Direct REST Gateway (Terminal Sync)</option>
                   <option value="TWELVE_DATA">TwelveData Real-time FX Endpoint</option>
                   <option value="ALPHA_VANTAGE">AlphaVantage Institutional Feed</option>
                 </select>
               </div>
+
+              {formData.data_source === "DERIV_API" && (
+                <div className="p-4 rounded-xl bg-slate-900/90 border border-cyan-500/30 space-y-3">
+                  <span className="text-cyan-300 font-bold uppercase text-[11px] tracking-wider block flex items-center gap-1.5">
+                    ⚡ Paramètres Deriv API Direct Connection
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-400 mb-1">Deriv App ID (Public: 1089)</label>
+                      <input
+                        type="text"
+                        value={formData.deriv_app_id || "1089"}
+                        onChange={(e) => handleChange("deriv_app_id", e.target.value)}
+                        placeholder="1089"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 mb-1">Clé API Deriv / Token (Optionnel)</label>
+                      <input
+                        type="password"
+                        value={formData.deriv_api_token || ""}
+                        onChange={(e) => handleChange("deriv_api_token", e.target.value)}
+                        placeholder="••••••••••••••••"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
                 <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider block">Supported Live Tickers</span>

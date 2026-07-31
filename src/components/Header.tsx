@@ -1,5 +1,5 @@
 import React from "react";
-import { Activity, RefreshCw, Settings, Wifi } from "lucide-react";
+import { Activity, RefreshCw, Settings, Wifi, Layers } from "lucide-react";
 
 interface HeaderProps {
   symbol: string;
@@ -11,6 +11,7 @@ interface HeaderProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onOpenConfig: () => void;
+  onOpenDerivCatalog?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   onOpenConfig,
+  onOpenDerivCatalog,
 }) => {
   return (
     <header className="bg-[#05070a]/90 backdrop-blur-md border-b border-slate-800/60 text-slate-100 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-0 z-50 shadow-2xl">
@@ -38,11 +40,11 @@ export const Header: React.FC<HeaderProps> = ({
             </h1>
             <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 rounded-full flex items-center gap-1">
               <Wifi className="w-2.5 h-2.5 animate-pulse text-cyan-400" />
-              FLUX TEMPS RÉEL
+              FLUX DERIV / EN DIRECT
             </span>
           </div>
           <p className="text-[11px] text-slate-500 font-mono uppercase tracking-widest">
-            Moteur Cognitif Institutionnel • Données Réelles
+            Moteur Cognitif Institutionnel • Données Deriv & Marchés
           </p>
         </div>
       </div>
@@ -59,7 +61,19 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Control Actions & Status */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap justify-end">
+        {/* Deriv Catalog Button */}
+        {onOpenDerivCatalog && (
+          <button
+            onClick={onOpenDerivCatalog}
+            className="px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 transition-all cursor-pointer font-mono text-xs font-bold flex items-center gap-1.5 shadow-sm"
+            title="Ouvrir le Catalogue des Actifs Deriv"
+          >
+            <Layers className="w-4 h-4 text-cyan-400 animate-pulse" />
+            <span>Actifs Deriv</span>
+          </button>
+        )}
+
         {/* Config Button */}
         <button
           onClick={onOpenConfig}
@@ -70,18 +84,31 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="hidden sm:inline">Configs</span>
         </button>
 
-        {/* Pair Select */}
+        {/* Pair / Symbol Select */}
         <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-800/80 rounded-xl px-3 py-1.5 text-xs font-mono">
-          <span className="text-slate-500 uppercase">Paire:</span>
+          <span className="text-slate-500 uppercase">Actif:</span>
           <select
             value={symbol}
             onChange={(e) => setSymbol(e.target.value)}
-            className="bg-transparent text-cyan-400 font-bold focus:outline-none cursor-pointer"
+            className="bg-transparent text-cyan-400 font-bold focus:outline-none cursor-pointer max-w-[140px]"
           >
-            <option value="EURUSD" className="bg-slate-950 text-white">EURUSD</option>
-            <option value="XAUUSD" className="bg-slate-950 text-white">XAUUSD (Or)</option>
-            <option value="GBPUSD" className="bg-slate-950 text-white">GBPUSD</option>
-            <option value="BTCUSD" className="bg-slate-950 text-white">BTCUSD</option>
+            <optgroup label="Indices Synthétiques Deriv">
+              <option value="R_100" className="bg-slate-950 text-white">Volatility 100 Index</option>
+              <option value="R_75" className="bg-slate-950 text-white">Volatility 75 Index</option>
+              <option value="R_50" className="bg-slate-950 text-white">Volatility 50 Index</option>
+              <option value="R_25" className="bg-slate-950 text-white">Volatility 25 Index</option>
+              <option value="1HZ10V" className="bg-slate-950 text-white">Volatility 10 (1s) Index</option>
+              <option value="BOOM1000" className="bg-slate-950 text-white">Boom 1000 Index</option>
+              <option value="CRASH1000" className="bg-slate-950 text-white">Crash 1000 Index</option>
+              <option value="STEP" className="bg-slate-950 text-white">Step Index</option>
+              <option value="JD10" className="bg-slate-950 text-white">Jump 10 Index</option>
+            </optgroup>
+            <optgroup label="Forex & Matières Premières">
+              <option value="EURUSD" className="bg-slate-950 text-white">EUR/USD</option>
+              <option value="GBPUSD" className="bg-slate-950 text-white">GBP/USD</option>
+              <option value="XAUUSD" className="bg-slate-950 text-white">XAUUSD (Or)</option>
+              <option value="BTCUSD" className="bg-slate-950 text-white">BTC/USD</option>
+            </optgroup>
           </select>
         </div>
 

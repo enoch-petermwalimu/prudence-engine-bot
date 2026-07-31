@@ -7,20 +7,24 @@ import { NarrativePanel } from "./components/NarrativePanel";
 import { ScoringMatrix } from "./components/ScoringMatrix";
 import { ExecutionPayload } from "./components/ExecutionPayload";
 import { ConfigModal } from "./components/ConfigModal";
+import { DerivAssetModal } from "./components/DerivAssetModal";
 import { CognitiveAnalysisResult, OHLCBar, EngineConfig } from "./types";
 import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>("workbench");
-  const [symbol, setSymbol] = useState<string>("EURUSD");
+  const [symbol, setSymbol] = useState<string>("R_100");
   const [timeframe, setTimeframe] = useState<string>("M15");
   const [analysis, setAnalysis] = useState<CognitiveAnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [bars, setBars] = useState<OHLCBar[]>([]);
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
+  const [isDerivCatalogOpen, setIsDerivCatalogOpen] = useState<boolean>(false);
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [config, setConfig] = useState<EngineConfig>({
-    data_source: "LIVE_API",
+    data_source: "DERIV_API",
+    deriv_app_id: "1089",
+    deriv_api_token: "",
     mt5_bridge_url: "http://localhost:8080/api",
     mt5_api_key: "prudence_secret_key_v5",
     mt5_account_id: "8891042",
@@ -106,6 +110,7 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenConfig={() => setIsConfigOpen(true)}
+        onOpenDerivCatalog={() => setIsDerivCatalogOpen(true)}
       />
 
       {/* Body Content */}
@@ -151,6 +156,16 @@ export default function App() {
         onClose={() => setIsConfigOpen(false)}
         config={config}
         onSave={handleSaveConfig}
+      />
+
+      {/* Deriv Asset Selector Modal */}
+      <DerivAssetModal
+        isOpen={isDerivCatalogOpen}
+        onClose={() => setIsDerivCatalogOpen(false)}
+        selectedSymbol={symbol}
+        onSelectSymbol={(newSym) => {
+          setSymbol(newSym);
+        }}
       />
 
       {/* Footer System Feed */}

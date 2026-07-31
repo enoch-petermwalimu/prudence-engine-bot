@@ -169,8 +169,21 @@ export interface CognitiveAnalysisResult {
   execution: ExecutionData;
 }
 
+export interface DerivSymbol {
+  symbol: string;
+  display_name: string;
+  market: string;
+  market_display_name: string;
+  submarket: string;
+  submarket_display_name: string;
+  pip: number;
+  is_trading_suspended?: number;
+}
+
 export interface EngineConfig {
-  data_source: "LIVE_API" | "MT5_BRIDGE" | "TWELVE_DATA" | "ALPHA_VANTAGE";
+  data_source: "DERIV_API" | "LIVE_API" | "MT5_BRIDGE" | "TWELVE_DATA" | "ALPHA_VANTAGE";
+  deriv_app_id?: string;
+  deriv_api_token?: string;
   mt5_bridge_url: string;
   mt5_api_key: string;
   mt5_account_id: string;
