@@ -1,0 +1,6 @@
+{
+  "name": "Prudence Engine V5",
+  "description": "Institutional Cognitive Trading Engine with market structure analysis, narrative generation, scoring, experience learning, and execution API.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
