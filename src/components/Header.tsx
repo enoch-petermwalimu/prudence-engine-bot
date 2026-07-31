@@ -1,5 +1,5 @@
 import React from "react";
-import { Activity, RefreshCw, Settings, Wifi, Layers } from "lucide-react";
+import { Activity, RefreshCw, Settings, Wifi, Layers, Wallet } from "lucide-react";
 
 interface HeaderProps {
   symbol: string;
@@ -12,6 +12,10 @@ interface HeaderProps {
   setActiveTab: (tab: string) => void;
   onOpenConfig: () => void;
   onOpenDerivCatalog?: () => void;
+  isAutoRefresh?: boolean;
+  setIsAutoRefresh?: (auto: boolean) => void;
+  lastUpdated?: Date | null;
+  accountBalance?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,7 +29,17 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   onOpenConfig,
   onOpenDerivCatalog,
+  isAutoRefresh = true,
+  setIsAutoRefresh,
+  lastUpdated,
+  accountBalance = 0.00
 }) => {
+  const defaultSymbols = [
+    "R_100", "R_75", "R_50", "R_25", "1HZ10V", "BOOM1000", "CRASH1000", "STEP", "JD10",
+    "EURUSD", "GBPUSD", "XAUUSD", "BTCUSD"
+  ];
+  const isCustomSymbol = !defaultSymbols.includes(symbol);
+
   return (
     <header className="bg-[#05070a]/90 backdrop-blur-md border-b border-slate-800/60 text-slate-100 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-0 z-50 shadow-2xl">
       {/* Brand & Engine Identity */}
@@ -38,9 +52,22 @@ export const Header: React.FC<HeaderProps> = ({
             <h1 className="text-xl font-extrabold tracking-tight text-white flex items-center gap-1.5 font-mono">
               PRUDENCE <span className="text-cyan-400">V5</span>
             </h1>
-            <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 rounded-full flex items-center gap-1">
-              <Wifi className="w-2.5 h-2.5 animate-pulse text-cyan-400" />
-              FLUX DERIV / EN DIRECT
+            <span
+              onClick={() => setIsAutoRefresh && setIsAutoRefresh(!isAutoRefresh)}
+              className={`px-2.5 py-0.5 text-[10px] font-mono font-bold border rounded-full flex items-center gap-1.5 cursor-pointer transition-all ${
+                isAutoRefresh
+                  ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/20"
+                  : "bg-slate-900 text-slate-500 border-slate-800 hover:text-slate-300"
+              }`}
+              title="Cliquer pour activer/désactiver le rafraîchissement automatique en temps réel"
+            >
+              <Wifi className={`w-2.5 h-2.5 ${isAutoRefresh ? "animate-pulse text-cyan-400" : "text-slate-500"}`} />
+              <span>{isAutoRefresh ? "DIRECT (5s)" : "MANUEL"}</span>
+              {lastUpdated && (
+                <span className="text-[9px] text-slate-400 opacity-80 border-l border-slate-700 pl-1">
+                  {lastUpdated.toLocaleTimeString()}
+                </span>
+              )}
             </span>
           </div>
           <p className="text-[11px] text-slate-500 font-mono uppercase tracking-widest">
@@ -50,18 +77,45 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Navigation Tabs (Turquoise Style) */}
-      <div className="flex items-center bg-slate-900/60 border border-slate-800/80 rounded-xl p-1 text-xs">
+      <div className="flex items-center bg-slate-900/80 border border-slate-800/80 rounded-xl p-1 text-xs gap-1">
         <button
           onClick={() => setActiveTab("workbench")}
-          className="px-3.5 py-1.5 rounded-lg font-mono text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm flex items-center gap-1.5 cursor-pointer"
+          className={`px-3.5 py-1.5 rounded-lg font-mono text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
+            activeTab === "workbench"
+              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+              : "text-slate-400 hover:text-white"
+          }`}
         >
           <Activity className="w-3.5 h-3.5 text-cyan-400" />
           Tableau de Bord
+        </button>
+
+        <button
+          onClick={() => setActiveTab("positions")}
+          className={`px-3.5 py-1.5 rounded-lg font-mono text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
+            activeTab === "positions"
+              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+          Positions & Compte MT5
         </button>
       </div>
 
       {/* Control Actions & Status */}
       <div className="flex items-center gap-3 flex-wrap justify-end">
+        {/* Account Balance Widget */}
+        <div
+          onClick={() => setActiveTab("positions")}
+          className="hidden lg:flex items-center gap-2 bg-slate-900/90 border border-slate-800 hover:border-cyan-500/40 rounded-xl px-3 py-1.5 text-xs font-mono cursor-pointer transition-all"
+          title="Voir les positions et détails du compte MetaTrader"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span className="text-slate-400">Solde:</span>
+          <strong className="text-white font-black">${accountBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong>
+        </div>
+
         {/* Deriv Catalog Button */}
         {onOpenDerivCatalog && (
           <button
@@ -84,6 +138,7 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="hidden sm:inline">Configs</span>
         </button>
 
+
         {/* Pair / Symbol Select */}
         <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-800/80 rounded-xl px-3 py-1.5 text-xs font-mono">
           <span className="text-slate-500 uppercase">Actif:</span>
@@ -92,6 +147,11 @@ export const Header: React.FC<HeaderProps> = ({
             onChange={(e) => setSymbol(e.target.value)}
             className="bg-transparent text-cyan-400 font-bold focus:outline-none cursor-pointer max-w-[140px]"
           >
+            {isCustomSymbol && (
+              <option value={symbol} className="bg-slate-950 text-cyan-300 font-bold">
+                {symbol} (Sélectionné)
+              </option>
+            )}
             <optgroup label="Indices Synthétiques Deriv">
               <option value="R_100" className="bg-slate-950 text-white">Volatility 100 Index</option>
               <option value="R_75" className="bg-slate-950 text-white">Volatility 75 Index</option>

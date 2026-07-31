@@ -1,6 +1,7 @@
 import React from "react";
 import { TrendingUp, TrendingDown, Target, ShieldCheck, Zap, Award, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { CognitiveAnalysisResult } from "../types";
+import { formatPrice } from "../utils/formatters";
 
 interface EssentialDashboardProps {
   analysis: CognitiveAnalysisResult | null;
@@ -75,7 +76,7 @@ export const EssentialDashboard: React.FC<EssentialDashboardProps> = ({ analysis
             <div className="flex items-center justify-between p-1.5 rounded bg-slate-950 border border-slate-850">
               <span className="text-slate-400">Entrée Moyenne:</span>
               <strong className="text-cyan-300 font-bold text-sm">
-                {analysis.execution.average_entry.toFixed(analysis.symbol === "BTCUSD" ? 2 : 5)}
+                {formatPrice(analysis.execution.average_entry, analysis.symbol)}
               </strong>
             </div>
 
@@ -83,13 +84,13 @@ export const EssentialDashboard: React.FC<EssentialDashboardProps> = ({ analysis
               <div className="p-1.5 rounded bg-slate-950 border border-slate-850 flex flex-col">
                 <span className="text-rose-400 font-bold">Stop Loss (SL)</span>
                 <span className="text-slate-200 font-bold">
-                  {analysis.execution.sl.toFixed(analysis.symbol === "BTCUSD" ? 2 : 5)}
+                  {formatPrice(analysis.execution.sl, analysis.symbol)}
                 </span>
               </div>
               <div className="p-1.5 rounded bg-slate-950 border border-slate-850 flex flex-col">
                 <span className="text-cyan-400 font-bold">Take Profit (TP)</span>
                 <span className="text-slate-200 font-bold">
-                  {analysis.execution.tp.toFixed(analysis.symbol === "BTCUSD" ? 2 : 5)}
+                  {formatPrice(analysis.execution.tp, analysis.symbol)}
                 </span>
               </div>
             </div>

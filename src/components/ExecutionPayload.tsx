@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ExecutionData, RiskData } from "../types";
 import { Code, Copy, Check, Send, Layers, ShieldCheck } from "lucide-react";
+import { formatPrice } from "../utils/formatters";
 
 interface ExecutionPayloadProps {
   execution: ExecutionData | null;
@@ -75,10 +76,10 @@ export const ExecutionPayload: React.FC<ExecutionPayloadProps> = ({ execution, r
 
         <div className="text-right font-mono flex flex-col items-end gap-1">
           <span className="text-[10px] text-slate-500 uppercase tracking-wider">Prix d'Entrée Moyen</span>
-          <span className="text-xl font-black text-white">{execution.average_entry}</span>
+          <span className="text-xl font-black text-white">{formatPrice(execution.average_entry, execution.symbol)}</span>
           <div className="text-xs flex items-center gap-2 font-bold mt-0.5">
-            <span className="text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">SL: {execution.sl}</span>
-            <span className="text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">TP: {execution.tp}</span>
+            <span className="text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">SL: {formatPrice(execution.sl, execution.symbol)}</span>
+            <span className="text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">TP: {formatPrice(execution.tp, execution.symbol)}</span>
           </div>
         </div>
       </div>
@@ -101,7 +102,7 @@ export const ExecutionPayload: React.FC<ExecutionPayloadProps> = ({ execution, r
                 </div>
                 <div className="flex items-center justify-between text-slate-400">
                   <span>Prix:</span>
-                  <strong className="text-white">{layer.price}</strong>
+                  <strong className="text-white">{formatPrice(layer.price, execution.symbol)}</strong>
                 </div>
                 <div className="flex items-center justify-between text-slate-400">
                   <span>Volume:</span>

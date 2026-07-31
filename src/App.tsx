@@ -8,6 +8,7 @@ import { ScoringMatrix } from "./components/ScoringMatrix";
 import { ExecutionPayload } from "./components/ExecutionPayload";
 import { ConfigModal } from "./components/ConfigModal";
 import { DerivAssetModal } from "./components/DerivAssetModal";
+import { PositionsPanel } from "./components/PositionsPanel";
 import { CognitiveAnalysisResult, OHLCBar, EngineConfig } from "./types";
 import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 
@@ -21,6 +22,30 @@ export default function App() {
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
   const [isDerivCatalogOpen, setIsDerivCatalogOpen] = useState<boolean>(false);
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
+  const [isAutoRefresh, setIsAutoRefresh] = useState<boolean>(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [accountBalance, setAccountBalance] = useState<number>(0.00);
+
+  const fetchAccountBalance = async () => {
+    try {
+      const res = await fetch("/api/account");
+      if (res.ok) {
+        const data = await res.json();
+        if (data && typeof data.balance === "number") {
+          setAccountBalance(data.balance);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    fetchAccountBalance();
+    const interval = setInterval(fetchAccountBalance, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const [config, setConfig] = useState<EngineConfig>({
     data_source: "DERIV_API",
     deriv_app_id: "1089",
@@ -61,17 +86,22 @@ export default function App() {
     }).catch((err) => console.error("Failed to save config", err));
   };
 
-  const handleRunAnalysis = async () => {
-    setIsLoading(true);
+  const handleRunAnalysis = async (isBackground = false) => {
+    if (!isBackground) setIsLoading(true);
 
     try {
-      // 1. Fetch REAL live market data bars from live financial feed API
-      const marketRes = await fetch(`/api/market-data?symbol=${symbol}&timeframe=${timeframe}`);
-      const marketData = await marketRes.json();
-      const realBars: OHLCBar[] = marketData.bars || [];
-      setBars(realBars);
+      // 1. Fetch REAL live market data bars from live financial feed API / Deriv WS
+      const marketRes = await fetch(`/api/market-data?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`);
+      let realBars: OHLCBar[] = [];
+      if (marketRes.ok) {
+        const marketData = await marketRes.json();
+        realBars = marketData.bars || [];
+        if (realBars.length > 0) {
+          setBars(realBars);
+        }
+      }
 
-      // 2. Post real market bars to Python Cognitive Engine
+      // 2. Post real market bars to Cognitive Engine
       const analyzeRes = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -84,18 +114,34 @@ export default function App() {
         }),
       });
 
-      const data: CognitiveAnalysisResult = await analyzeRes.json();
-      setAnalysis(data);
+      if (analyzeRes.ok) {
+        const data: CognitiveAnalysisResult = await analyzeRes.json();
+        if (data && data.symbol) {
+          setAnalysis(data);
+          setLastUpdated(new Date());
+        }
+      }
     } catch (err) {
-      console.error("Failed to fetch real market data or run cognitive engine", err);
+      console.warn("Notice: Market data fetch or analysis update completed with warning:", err);
     } finally {
-      setIsLoading(false);
+      if (!isBackground) setIsLoading(false);
     }
   };
 
+  // Run analysis when symbol or timeframe changes
   useEffect(() => {
-    handleRunAnalysis();
+    handleRunAnalysis(false);
   }, [symbol, timeframe]);
+
+  // Real-time auto-refresh interval (5 seconds)
+  useEffect(() => {
+    if (!isAutoRefresh) return;
+    const interval = setInterval(() => {
+      handleRunAnalysis(true);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [symbol, timeframe, isAutoRefresh, config]);
 
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-300 font-sans antialiased flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
@@ -105,12 +151,16 @@ export default function App() {
         setSymbol={setSymbol}
         timeframe={timeframe}
         setTimeframe={setTimeframe}
-        onAnalyze={handleRunAnalysis}
+        onAnalyze={() => handleRunAnalysis(false)}
         isLoading={isLoading}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenConfig={() => setIsConfigOpen(true)}
         onOpenDerivCatalog={() => setIsDerivCatalogOpen(true)}
+        isAutoRefresh={isAutoRefresh}
+        setIsAutoRefresh={setIsAutoRefresh}
+        lastUpdated={lastUpdated}
+        accountBalance={accountBalance}
       />
 
       {/* Body Content */}
@@ -122,6 +172,9 @@ export default function App() {
 
             {/* Graphique de Marché (Market Canvas) */}
             <MarketCanvas bars={bars} analysis={analysis} />
+
+            {/* Panneau des Positions & Compte MetaTrader / Deriv Direct */}
+            <PositionsPanel analysis={analysis} symbol={symbol} />
 
             {/* Bouton Optionnel pour Détails Technique */}
             <div className="flex justify-center pt-2">
@@ -148,7 +201,14 @@ export default function App() {
             )}
           </>
         )}
+
+        {activeTab === "positions" && (
+          <div className="flex flex-col gap-6 animate-fadeIn">
+            <PositionsPanel analysis={analysis} symbol={symbol} />
+          </div>
+        )}
       </main>
+
 
       {/* Configuration Settings Modal */}
       <ConfigModal

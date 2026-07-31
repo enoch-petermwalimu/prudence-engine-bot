@@ -199,3 +199,36 @@ export interface EngineConfig {
   ema_slow: number;
 }
 
+export interface ActivePosition {
+  ticket: string;
+  symbol: string;
+  type: "BUY" | "SELL";
+  lots: number;
+  open_price: number;
+  current_price: number;
+  sl: number;
+  tp: number;
+  profit: number;
+  open_time: string;
+  status: "OPEN" | "CLOSED";
+  comment: string;
+  magic_number: number;
+}
+
+export interface AccountSummary {
+  account_id: string;
+  server: string;
+  broker: string;
+  currency: string;
+  balance: number;
+  equity: number;
+  margin: number;
+  free_margin: number;
+  margin_level: number;
+  floating_profit: number;
+  connected: boolean;
+  leverage: number;
+  open_positions_count: number;
+}
+
+

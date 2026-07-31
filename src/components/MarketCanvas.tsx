@@ -1,7 +1,8 @@
 import React from "react";
 import { ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, ReferenceArea, ReferenceLine } from "recharts";
 import { OHLCBar, CognitiveAnalysisResult } from "../types";
-import { TrendingUp, ShieldAlert, Award, Layers, Target } from "lucide-react";
+import { TrendingUp, ShieldAlert } from "lucide-react";
+import { formatPrice } from "../utils/formatters";
 
 interface MarketCanvasProps {
   bars: OHLCBar[];
@@ -11,6 +12,20 @@ interface MarketCanvasProps {
 export const MarketCanvas: React.FC<MarketCanvasProps> = ({ bars, analysis }) => {
   if (!bars || bars.length === 0) return null;
 
+  const activeSymbol = analysis?.symbol || "R_100";
+
+  // Calculate exponential moving averages dynamically
+  const calculateEMA = (period: number) => {
+    const k = 2 / (period + 1);
+    let ema = bars[0].close;
+    return bars.map((b) => {
+      ema = b.close * k + ema * (1 - k);
+      return Number(ema.toFixed(5));
+    });
+  };
+
+  const ema20List = calculateEMA(20);
+
   const chartData = bars.map((b, idx) => {
     return {
       time: b.timestamp.split(" ")[1] || `${idx}`,
@@ -19,9 +34,7 @@ export const MarketCanvas: React.FC<MarketCanvasProps> = ({ bars, analysis }) =>
       low: b.low,
       close: b.close,
       price: b.close,
-      ema20: b.close * 0.9995,
-      ema60: b.close * 0.9985,
-      ema200: b.close * 0.9970,
+      ema20: ema20List[idx],
     };
   });
 
@@ -43,7 +56,7 @@ export const MarketCanvas: React.FC<MarketCanvasProps> = ({ bars, analysis }) =>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-base font-bold font-mono text-white">{analysis?.symbol || "EURUSD"}</span>
+            <span className="text-base font-bold font-mono text-white">{activeSymbol}</span>
             <span className="text-[10px] font-mono font-bold bg-slate-900 text-cyan-400 border border-slate-800 px-2 py-0.5 rounded">
               {analysis?.timeframe || "M15"}
             </span>
@@ -88,7 +101,7 @@ export const MarketCanvas: React.FC<MarketCanvasProps> = ({ bars, analysis }) =>
       {/* Candlestick & Market Structure Canvas */}
       <div className="h-72 w-full relative pt-2">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+          <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
             <XAxis dataKey="time" stroke="#475569" tick={{ fontSize: 10, fontFamily: "monospace" }} axisLine={{ stroke: "#1e293b" }} />
             <YAxis
               domain={[minPrice - range * 0.05, maxPrice + range * 0.05]}
@@ -96,11 +109,11 @@ export const MarketCanvas: React.FC<MarketCanvasProps> = ({ bars, analysis }) =>
               tick={{ fontSize: 10, fontFamily: "monospace" }}
               orientation="right"
               axisLine={{ stroke: "#1e293b" }}
-              tickFormatter={(v) => v.toFixed(4)}
+              tickFormatter={(v) => formatPrice(v, activeSymbol)}
             />
             <Tooltip
               contentStyle={{ backgroundColor: "#05070a", borderColor: "#1e293b", borderRadius: "8px", color: "#f8fafc", fontFamily: "monospace" }}
-              formatter={(value: any) => [typeof value === "number" ? value.toFixed(5) : value, ""]}
+              formatter={(value: any) => [typeof value === "number" ? formatPrice(value, activeSymbol) : value, "Prix"]}
             />
 
             {/* Premium vs Discount Shade Areas */}
@@ -136,7 +149,7 @@ export const MarketCanvas: React.FC<MarketCanvasProps> = ({ bars, analysis }) =>
                 y={slLevel}
                 stroke="#f43f5e"
                 strokeDasharray="4 4"
-                label={{ value: `SL: ${slLevel.toFixed(4)}`, fill: "#fb7185", fontSize: 10, position: "right" }}
+                label={{ value: `SL: ${formatPrice(slLevel, activeSymbol)}`, fill: "#fb7185", fontSize: 10, position: "right" }}
               />
             )}
             {tpLevel && (
@@ -144,7 +157,7 @@ export const MarketCanvas: React.FC<MarketCanvasProps> = ({ bars, analysis }) =>
                 y={tpLevel}
                 stroke="#06b6d4"
                 strokeDasharray="4 4"
-                label={{ value: `TP: ${tpLevel.toFixed(4)}`, fill: "#22d3ee", fontSize: 10, position: "right" }}
+                label={{ value: `TP: ${formatPrice(tpLevel, activeSymbol)}`, fill: "#22d3ee", fontSize: 10, position: "right" }}
               />
             )}
             {avgEntry && (
@@ -152,12 +165,15 @@ export const MarketCanvas: React.FC<MarketCanvasProps> = ({ bars, analysis }) =>
                 y={avgEntry}
                 stroke="#06b6d4"
                 strokeWidth={2}
-                label={{ value: `ENTRÉE MOY: ${avgEntry.toFixed(4)}`, fill: "#22d3ee", fontSize: 10, position: "right" }}
+                label={{ value: `ENTRÉE: ${formatPrice(avgEntry, activeSymbol)}`, fill: "#22d3ee", fontSize: 10, position: "right" }}
               />
             )}
 
+            {/* EMA20 Line */}
+            <Line type="monotone" dataKey="ema20" stroke="#a855f7" strokeWidth={1} strokeDasharray="2 2" dot={false} name="EMA20" />
+
             {/* Close Price Line */}
-            <Line type="monotone" dataKey="price" stroke="#06b6d4" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="price" stroke="#06b6d4" strokeWidth={2} dot={false} name="Prix Fermeture" />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -167,11 +183,11 @@ export const MarketCanvas: React.FC<MarketCanvasProps> = ({ bars, analysis }) =>
         <div className="flex items-center gap-4 text-[11px]">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-            Zone Décote (&lt;50%)
+            Prix de Marché
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-            Zone Premium (&gt;50%)
+            <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+            Moyenne EMA20
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
