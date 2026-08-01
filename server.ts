@@ -449,6 +449,58 @@ async function startServer() {
 
   let activePositions: any[] = [];
 
+  // Helper function to query real Deriv WebSocket API
+  const authenticateDerivToken = (token: string): Promise<{ success: boolean; loginid?: string; balance?: number; currency?: string; error?: string }> => {
+    return new Promise((resolve) => {
+      try {
+        const socket = new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089");
+        let timer = setTimeout(() => {
+          try { socket.close(); } catch (e) {}
+          resolve({ success: false, error: "Délai d'attente dépassé (Deriv WS Server)" });
+        }, 6000);
+
+        socket.on("open", () => {
+          socket.send(JSON.stringify({ authorize: token }));
+        });
+
+        socket.on("message", (raw) => {
+          try {
+            const data = JSON.parse(raw.toString());
+            if (data.msg_type === "authorize") {
+              clearTimeout(timer);
+              try { socket.close(); } catch (e) {}
+
+              if (data.error) {
+                resolve({ success: false, error: data.error.message || "Jeton API invalide ou expiré" });
+              } else if (data.authorize) {
+                const auth = data.authorize;
+                resolve({
+                  success: true,
+                  loginid: auth.loginid,
+                  balance: Number(auth.balance),
+                  currency: auth.currency || "USD"
+                });
+              } else {
+                resolve({ success: false, error: "Réponse d'autorisation inconnue" });
+              }
+            }
+          } catch (e) {
+            clearTimeout(timer);
+            try { socket.close(); } catch (err) {}
+            resolve({ success: false, error: "Erreur de formatage des données WebSocket Deriv" });
+          }
+        });
+
+        socket.on("error", (err) => {
+          clearTimeout(timer);
+          resolve({ success: false, error: "Impossible de contacter le serveur WebSocket Deriv" });
+        });
+      } catch (err: any) {
+        resolve({ success: false, error: err?.message || "Erreur de connexion WebSocket" });
+      }
+    });
+  };
+
   // Helper to calculate dynamic live profits & account metrics
   const getAccountMetrics = () => {
     let floating_profit = 0;
@@ -484,7 +536,7 @@ async function startServer() {
   });
 
   // Connect MetaTrader / Deriv Account Endpoint
-  app.post("/api/account/connect", (req, res) => {
+  app.post("/api/account/connect", async (req, res) => {
     try {
       const { account_id, server, broker, api_token, balance, mode } = req.body || {};
       if (mode === "demo") {
@@ -498,18 +550,48 @@ async function startServer() {
           connected: true,
           api_token: "DEMO_TOKEN_PRUDENCE"
         };
-      } else {
+        return res.json({ success: true, message: `Compte Démo (${accountState.account_id}) connecté avec $10,000.00 USD !`, account: getAccountMetrics() });
+      }
+
+      // If API token is provided, verify with real Deriv WebSocket API
+      if (api_token && api_token.trim().length > 5) {
+        const derivAuth = await authenticateDerivToken(api_token.trim());
+        if (!derivAuth.success) {
+          return res.status(400).json({
+            success: false,
+            error: derivAuth.error || "Échec d'authentification Deriv API Token"
+          });
+        }
+
         accountState = {
-          account_id: account_id || "CR" + Math.floor(100000 + Math.random() * 900000),
+          account_id: derivAuth.loginid || account_id || "CR" + Math.floor(100000 + Math.random() * 900000),
           server: server || "Deriv-Server-01 (Deriv Live)",
-          broker: broker || "Deriv Limited",
-          currency: "USD",
-          balance: Number(balance) > 0 ? Number(balance) : 1000.00,
+          broker: broker || "Deriv Limited (API Direct)",
+          currency: derivAuth.currency || "USD",
+          balance: derivAuth.balance != null ? derivAuth.balance : (Number(balance) || 1000.00),
           leverage: 500,
           connected: true,
-          api_token: api_token || ""
+          api_token: api_token.trim()
         };
+
+        return res.json({
+          success: true,
+          message: `Compte Deriv Réel (${accountState.account_id}) vérifié & connecté ! Solde Réel : $${accountState.balance.toFixed(2)} ${accountState.currency}`,
+          account: getAccountMetrics()
+        });
       }
+
+      // Manual fallback connect if no API token provided
+      accountState = {
+        account_id: account_id || "CR" + Math.floor(100000 + Math.random() * 900000),
+        server: server || "Deriv-Server-01 (Deriv Live)",
+        broker: broker || "Deriv Limited",
+        currency: "USD",
+        balance: Number(balance) > 0 ? Number(balance) : 1000.00,
+        leverage: 500,
+        connected: true,
+        api_token: api_token || ""
+      };
       res.json({ success: true, message: `Compte ${accountState.account_id} connecté avec succès !`, account: getAccountMetrics() });
     } catch (err) {
       res.status(500).json({ success: false, error: "Échec de connexion au compte" });

@@ -18,8 +18,9 @@ export const EssentialDashboard: React.FC<EssentialDashboardProps> = ({ analysis
     );
   }
 
-  const isBuy = analysis.decision === "BUY";
-  const isSell = analysis.decision === "SELL";
+  const signal = analysis.execution?.signal || (analysis.bias?.direction === "BUY" || analysis.bias?.direction === "SELL" ? analysis.bias.direction : "ATTENTE");
+  const isBuy = signal === "BUY";
+  const isSell = signal === "SELL";
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono">
